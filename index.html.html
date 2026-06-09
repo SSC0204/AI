@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>India GovGenAI Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F5F6F8; --card:#FFFFFF; --ink:#101521; --muted:#646B7A;
+    --line:#E6E8EC; --line-soft:#EFF1F4;
+    --saffron:#C2410C; --indigo:#1E3A8A;
+    --deployed:#047857; --pipeline:#1D4ED8; --eoi:#B45309; --concept:#566072; --funded:#6D28D9;
+    --shadow:0 1px 2px rgba(16,21,33,.04),0 6px 22px rgba(16,21,33,.06);
+    --mono:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+    --sans:'Inter',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0}
+  body{font-family:var(--sans);background:var(--paper);color:var(--ink);line-height:1.5;
+    -webkit-font-smoothing:antialiased;padding-bottom:env(safe-area-inset-bottom)}
+  .wrap{max-width:760px;margin:0 auto;padding:0 14px}
+
+  /* Header */
+  header{background:linear-gradient(160deg,#141B2D 0%,#1E3A8A 130%);color:#fff;
+    padding:22px 0 18px;position:relative;overflow:hidden}
+  header::after{content:"";position:absolute;right:-40px;top:-40px;width:160px;height:160px;
+    border:14px solid rgba(194,65,12,.28);border-radius:50%}
+  .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;
+    color:#FBBF77;font-weight:500}
+  h1{font-size:24px;font-weight:700;letter-spacing:-.02em;margin:6px 0 4px;line-height:1.15}
+  .sub{font-size:13px;color:#C6CCDA;max-width:90%}
+  .meta-row{display:flex;gap:14px;margin-top:14px;flex-wrap:wrap}
+  .meta{font-family:var(--mono);font-size:11px;color:#AEB6C9}
+  .meta b{color:#fff;font-weight:600}
+
+  /* Controls */
+  .controls{position:sticky;top:0;z-index:20;background:var(--paper);
+    padding:12px 0 8px;border-bottom:1px solid var(--line)}
+  .search{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);
+    border-radius:12px;padding:10px 12px;box-shadow:var(--shadow)}
+  .search input{border:0;outline:0;font-size:15px;width:100%;font-family:var(--sans);background:transparent;color:var(--ink)}
+  .search svg{flex:0 0 auto;color:var(--muted)}
+  .chips{display:flex;gap:7px;overflow-x:auto;padding:10px 0 2px;scrollbar-width:none;-ms-overflow-style:none}
+  .chips::-webkit-scrollbar{display:none}
+  .chip{flex:0 0 auto;font-family:var(--mono);font-size:11px;letter-spacing:.03em;
+    padding:7px 12px;border-radius:999px;border:1px solid var(--line);background:var(--card);
+    color:var(--muted);font-weight:500;cursor:pointer;white-space:nowrap;transition:.15s}
+  .chip.active{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .chip-label{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--muted);margin:6px 2px 0;font-weight:600}
+
+  /* Cards */
+  .count{font-family:var(--mono);font-size:11px;color:var(--muted);margin:14px 2px 8px;letter-spacing:.04em}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;margin-bottom:10px;
+    box-shadow:var(--shadow);overflow:hidden}
+  .card-head{padding:14px 14px;cursor:pointer;display:flex;gap:12px;align-items:flex-start}
+  .card-head:active{background:var(--line-soft)}
+  .rail{flex:0 0 auto;width:4px;align-self:stretch;border-radius:4px;margin-top:2px;margin-bottom:2px}
+  .card-body-head{flex:1;min-width:0}
+  .ctitle{font-size:15px;font-weight:600;letter-spacing:-.01em;margin:0 0 5px}
+  .tagrow{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+  .pill{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.04em;
+    padding:3px 8px;border-radius:6px;white-space:nowrap}
+  .pill.jur{background:#EEF1F6;color:#33415A}
+  .pill.sec{background:#FBF1EA;color:#9A3D12}
+  .status-dot{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:11px;font-weight:600}
+  .dot{width:7px;height:7px;border-radius:50%}
+  .chev{flex:0 0 auto;color:var(--muted);transition:transform .2s;margin-top:2px}
+  .card.open .chev{transform:rotate(180deg)}
+  .entity{font-size:12px;color:var(--muted);margin-top:6px}
+
+  /* Detail */
+  .detail{display:none;border-top:1px solid var(--line-soft);padding:4px 14px 16px}
+  .card.open .detail{display:block}
+  .field{padding:11px 0;border-bottom:1px solid var(--line-soft)}
+  .field:last-child{border-bottom:0}
+  .flabel{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--muted);font-weight:600;margin-bottom:3px;display:flex;align-items:center;gap:6px}
+  .fval{font-size:13.5px;color:var(--ink)}
+  .fval.unknown{color:#9AA1AE;font-style:italic}
+  .conf{display:inline-block;font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:.05em;
+    padding:2px 6px;border-radius:5px;vertical-align:middle}
+  .conf.Verified{background:#E6F4EC;color:#047857}
+  .conf.Reported{background:#FEF3E2;color:#B45309}
+  .conf.Indicative{background:#EEF0F4;color:#566072}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 18px}
+  @media(max-width:480px){.grid2{grid-template-columns:1fr}}
+  .src{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;
+    color:var(--indigo);text-decoration:none;font-weight:600;margin-top:10px;word-break:break-all}
+
+  /* Buttons / actions */
+  .actions{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 4px}
+  .btn{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.04em;
+    padding:9px 13px;border-radius:10px;border:1px solid var(--line);background:var(--card);
+    color:var(--ink);cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+  .btn.primary{background:var(--saffron);border-color:var(--saffron);color:#fff}
+  .btn:active{transform:translateY(1px)}
+
+  /* Live sources */
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;
+    margin:18px 0;box-shadow:var(--shadow)}
+  .panel h2{font-size:15px;margin:0 0 4px;letter-spacing:-.01em}
+  .panel p{font-size:12.5px;color:var(--muted);margin:0 0 12px}
+  .feed{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line-soft)}
+  .feed:first-of-type{border-top:0}
+  .feed .fx{flex:1;min-width:0}
+  .feed .fn{font-size:13.5px;font-weight:600}
+  .feed .fd{font-size:11.5px;color:var(--muted)}
+  .feed a{font-family:var(--mono);font-size:11px;color:var(--indigo);text-decoration:none;font-weight:600;white-space:nowrap}
+
+  .note{font-size:11.5px;color:var(--muted);background:#FBF6EE;border:1px solid #F0E2CE;
+    border-radius:12px;padding:12px 14px;margin:16px 0}
+  .note b{color:var(--saffron)}
+
+  footer{text-align:center;font-family:var(--mono);font-size:10.5px;color:#9AA1AE;
+    padding:24px 14px 30px;letter-spacing:.04em}
+
+  /* Modal */
+  .modal{position:fixed;inset:0;background:rgba(16,21,33,.5);display:none;z-index:50;
+    align-items:flex-end;justify-content:center}
+  .modal.show{display:flex}
+  .sheet{background:var(--card);width:100%;max-width:760px;border-radius:18px 18px 0 0;
+    padding:18px 16px calc(20px + env(safe-area-inset-bottom));max-height:90vh;overflow:auto}
+  .sheet h3{margin:0 0 12px;font-size:16px}
+  .sheet label{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--muted);font-weight:600;display:block;margin:10px 0 4px}
+  .sheet input,.sheet textarea,.sheet select{width:100%;border:1px solid var(--line);border-radius:9px;
+    padding:9px 11px;font-size:14px;font-family:var(--sans);color:var(--ink);background:var(--card)}
+  .sheet textarea{min-height:54px;resize:vertical}
+  .empty{text-align:center;color:var(--muted);font-size:13px;padding:40px 10px}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="eyebrow">Government of India · GenAI opportunity tracker</div>
+    <h1>GovGenAI&nbsp;Tracker</h1>
+    <div class="sub">Documented generative-AI initiatives across central ministries, regulators, states &amp; UTs — with status, funding, procurement stage and the live feeds to track new ones.</div>
+    <div class="meta-row">
+      <span class="meta">Records: <b id="m-total">0</b></span>
+      <span class="meta">Deployed: <b id="m-dep">0</b></span>
+      <span class="meta">Open EOI/RFP: <b id="m-eoi">0</b></span>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="controls">
+    <div class="search">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+      <input id="q" type="search" placeholder="Search project, ministry, sector, minister…" autocomplete="off">
+    </div>
+    <div class="chip-label">Jurisdiction</div>
+    <div class="chips" id="jurChips"></div>
+    <div class="chip-label">Stage</div>
+    <div class="chips" id="statusChips"></div>
+  </div>
+
+  <div class="count" id="count"></div>
+  <div id="list"></div>
+
+  <div class="actions">
+    <button class="btn primary" onclick="openAdd()">+ Add a project</button>
+    <button class="btn" onclick="exportJSON()">Export JSON</button>
+    <button class="btn" onclick="document.getElementById('imp').click()">Import JSON</button>
+    <input id="imp" type="file" accept="application/json" style="display:none" onchange="importJSON(event)">
+  </div>
+
+  <div class="panel">
+    <h2>Track new EOIs / RFPs / awards live</h2>
+    <p>This list is a verified snapshot. Tenders move daily — these are the canonical Indian government feeds. Search them for "artificial intelligence", "generative AI", "LLM", "chatbot", "Bhashini".</p>
+    <div id="feeds"></div>
+  </div>
+
+  <div class="note">
+    <b>Read this.</b> A complete census of every GenAI project across all states, UTs, ministries, PSUs, municipalities and cooperatives does not exist in any single public source — and granular fields like named officer-in-charge, internal funding status, or pre-award "favoured solution" are mostly not published. Fields marked <span class="conf Indicative">INDICATIVE</span> are reasonable inferences from the project type, not confirmed facts; <span class="conf Reported">REPORTED</span> means single-source/press; <span class="conf Verified">VERIFIED</span> means an official/government source. Always confirm against the primary tender document before acting commercially. Treat this as a living tool: extend it using the feeds above.
+  </div>
+</div>
+
+<footer id="foot"></footer>
+
+<!-- Add/Edit modal -->
+<div class="modal" id="modal">
+  <div class="sheet">
+    <h3>Add a project</h3>
+    <label>Project name</label><input id="f_name">
+    <div class="grid2">
+      <div><label>Jurisdiction</label>
+        <select id="f_jur"><option>Centre</option><option>State</option><option>UT</option><option>Local body</option><option>Regulator</option></select></div>
+      <div><label>Stage</label>
+        <select id="f_status"><option>Deployed</option><option>Pipeline</option><option>EOI/RFP</option><option>Funded/CfP</option><option>Concept</option></select></div>
+    </div>
+    <label>Entity / department</label><input id="f_entity">
+    <label>Sector</label><input id="f_sector" placeholder="e.g. Governance, Agriculture, Health">
+    <label>Problem statement</label><textarea id="f_problem"></textarea>
+    <label>Known / favoured solution</label><textarea id="f_solution"></textarea>
+    <div class="grid2">
+      <div><label>Funding</label><input id="f_funding"></div>
+      <div><label>Project size</label><input id="f_size"></div>
+    </div>
+    <label>EOI / RFP / award status</label><input id="f_eoi">
+    <label>Ground status</label><input id="f_ground">
+    <div class="grid2">
+      <div><label>Officer in charge</label><input id="f_officer"></div>
+      <div><label>Minister / head</label><input id="f_minister"></div>
+    </div>
+    <label>Qualifying criteria</label><textarea id="f_criteria"></textarea>
+    <label>Technical skills required</label><input id="f_skills">
+    <label>Source URL</label><input id="f_source">
+    <div class="actions" style="margin-top:14px">
+      <button class="btn primary" onclick="saveAdd()">Save project</button>
+      <button class="btn" onclick="closeAdd()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ---------- Verified data snapshot (June 2026). Sources are official/govt where available. ---------- */
+const SEED = [
+ {id:"c-indiaai", name:"IndiaAI Mission (national programme)", jur:"Centre", entity:"MeitY", sector:"Cross-sector / AI ecosystem", status:"Funded/CfP",
+  funding:"~USD 1.25 bn (~₹10,300 cr) approved outlay over 5 yrs", size:"National mission, 7 pillars",
+  eoi:"Multiple calls open across pillars (Compute, App Dev, Innovation Centre)", ground:"Approved by Union Cabinet 7 Mar 2024; rollout ongoing",
+  officer:"IndiaAI Mission (IBD under Digital India Corp)", minister:"MeitY (Ashwini Vaishnaw)",
+  problem:"Build a sovereign, inclusive AI ecosystem: compute, datasets, skills, startup capital, safe & trusted AI.",
+  solution:"7 pillars — IndiaAI Compute (10,000+ GPUs via PPP), Datasets Platform, Innovation Centre (foundation models), Application Dev, FutureSkills, Startup Financing, Safe & Trusted AI.",
+  criteria:"Pillar-specific (startups/researchers/PPP partners). See each call on indiaai.gov.in.",
+  skills:"Foundation models, GPU/HPC ops, data engineering, ML research, AI safety/evals",
+  source:"https://indiaai.gov.in/government-of-india", conf:"Verified"},
+
+ {id:"c-iaic", name:"IndiaAI Innovation Centre — foundation model CfP", jur:"Centre", entity:"IndiaAI / MeitY", sector:"Foundation models", status:"EOI/RFP",
+  funding:"Govt-supported (compute + grants)", size:"National; multiple awardees",
+  eoi:"Call for Proposals launched 30 Jan 2025 — foundational AI models on Indian datasets", ground:"Proposals invited from startups, researchers, entrepreneurs",
+  officer:"Not publicly disclosed", minister:"MeitY",
+  problem:"India lacks indigenous frontier/foundation models trained on Indian-language and Indian-context data.",
+  solution:"Fund and provide compute to teams building sovereign foundation models (e.g. selected via CfP rounds).",
+  criteria:"Indian entity; demonstrated AI/ML capability; data + model plan; per official CfP terms.",
+  skills:"LLM pre/post-training, tokenization for Indic languages, evals, distributed training",
+  source:"https://www.pib.gov.in/PressReleasePage.aspx?PRID=2113095", conf:"Verified"},
+
+ {id:"c-bhashini", name:"Bhashini — language AI platform", jur:"Centre", entity:"Digital India Bhashini Division, MeitY", sector:"Language / translation", status:"Deployed",
+  funding:"Govt-funded; moving to paid-service model (orders 'worth crores' reported)", size:"22 scheduled languages; 1000+ models; open APIs",
+  eoi:"Procures via challenges (BHASHINI Grand Innovation Challenge) + partner onboarding", ground:"Live — ASR, MT, TTS, speech-to-speech, OCR via open APIs; used by NPCI (UPI), judiciary, education",
+  officer:"CEO: Amitabh Nag", minister:"MeitY",
+  problem:"Language barrier blocks 90%+ of Indians from English-first digital services.",
+  solution:"National public language-tech platform: 1000+ pre-trained models exposed via Open Bhashini APIs for govt/enterprise/citizen apps.",
+  criteria:"Ecosystem partners onboard via APIs; challenges open to startups/research.",
+  skills:"NLP/ASR/TTS, Indic NLP, API integration, MLOps",
+  source:"https://bhashini.gov.in/", conf:"Verified"},
+
+ {id:"c-sansad", name:"Sansad Bhashini — parliamentary translation", jur:"Centre", entity:"DIBD, MeitY", sector:"Legislature / language", status:"Deployed",
+  funding:"Under Bhashini programme", size:"Parliamentary debates",
+  eoi:"Within Bhashini", ground:"Real-time translation of parliamentary content/debates",
+  officer:"Not publicly disclosed", minister:"MeitY",
+  problem:"Parliamentary debates and records need access across 22 languages.",
+  solution:"Bhashini models applied to parliamentary content for multilingual access.",
+  criteria:"N/A (internal deployment)", skills:"MT, domain adaptation, deployment",
+  source:"https://ddnews.gov.in/en/indias-22-languages-go-digital-ai-platforms-like-bhashini-bharatgen-and-adi-vaani-lead-the-multilingual-revolution/", conf:"Verified"},
+
+ {id:"c-bharatgen", name:"BharatGen — multilingual foundation models", jur:"Centre", entity:"Govt-funded; IIT Bombay-led consortium", sector:"Foundation models / language", status:"Pipeline",
+  funding:"Government-funded R&D", size:"Multilingual text + speech models",
+  eoi:"Consortium / research-led", ground:"Developing text-to-text & text-to-speech models using SPPEL & CIIL (Sanchika) datasets",
+  officer:"Not publicly disclosed", minister:"Govt of India (R&D)",
+  problem:"Need indigenous generative models covering scheduled + endangered Indian languages.",
+  solution:"Build multilingual foundation models on curated Indian-language corpora.",
+  criteria:"Research consortium", skills:"LLM training, speech models, endangered-language data curation",
+  source:"https://ddnews.gov.in/en/indias-22-languages-go-digital-ai-platforms-like-bhashini-bharatgen-and-adi-vaani-lead-the-multilingual-revolution/", conf:"Reported"},
+
+ {id:"c-jugalbandi", name:"Jugalbandi — welfare-scheme chatbot", jur:"Centre", entity:"AI4Bharat / OpenNyAI, adopted by MeitY", sector:"Citizen services / welfare", status:"Deployed",
+  funding:"Backed by Govt of India; partner-built (Microsoft, Thoughtworks, Agami)", size:"170+ central schemes; 10+ languages; WhatsApp",
+  eoi:"Adopted into Bhashini ecosystem", ground:"Piloted in rural India; conversational access to scheme eligibility/benefits via voice + WhatsApp",
+  officer:"Not publicly disclosed", minister:"MeitY",
+  problem:"Rural citizens can't access info on 100s of welfare schemes due to language + literacy + complexity.",
+  solution:"LLM + Bhashini translation chatbot on WhatsApp answering scheme queries by voice in local languages.",
+  criteria:"N/A (govt-adopted open project)", skills:"RAG/LLM apps, WhatsApp/IVR, Indic speech, FastAPI/Postgres",
+  source:"https://www.thoughtworks.com/en-us/clients/jugalbandi", conf:"Verified"},
+
+ {id:"c-umang", name:"UMANG conversational AI chatbot", jur:"Centre", entity:"National e-Governance Division (NeGD), MeitY", sector:"Citizen services / e-gov", status:"EOI/RFP",
+  funding:"Govt procurement", size:"UMANG app — pan-India, all-services assistant",
+  eoi:"Proposals invited from AI firms to build a conversational AI platform for UMANG", ground:"Procurement stage — bot to assist with registration, login, service info, FAQs",
+  officer:"Not publicly disclosed", minister:"MeitY",
+  problem:"UMANG hosts thousands of govt services; users struggle to find/navigate them.",
+  solution:"Conversational AI assistant embedded in the UMANG app for service discovery and support.",
+  criteria:"AI firms; per RFP eligibility (turnover, past e-gov work) — confirm in tender.",
+  skills:"Conversational AI, intent/NLU, multilingual, secure govt integration",
+  source:"https://indiaai.gov.in/news/govt-is-inviting-bids-for-building-ai-powered-chatbot", conf:"Verified"},
+
+ {id:"c-kalaasetu", name:"Kalaa Setu challenge (creative GenAI)", jur:"Centre", entity:"Ministry of Information & Broadcasting", sector:"Media / citizen comms", status:"EOI/RFP",
+  funding:"Via WaveX Startup Accelerator", size:"Nationwide challenge",
+  eoi:"Challenge launched 9 Jul 2025 on WaveX accelerator platform", ground:"Open challenge for citizen-centric digital communication tools",
+  officer:"Not publicly disclosed", minister:"Ministry of I&B",
+  problem:"Government communication needs richer, faster, citizen-centric digital content.",
+  solution:"Crowd-source GenAI tools for digital communication via a startup challenge.",
+  criteria:"Startups via WaveX; per challenge terms.",
+  skills:"Generative media (text/image/video), content pipelines",
+  source:"https://www.sify.com/ai-analytics/the-rise-of-ai-driven-governance-in-india/", conf:"Reported"},
+
+ {id:"r-rbichat", name:"RBI grievance conversational AI (CMS)", jur:"Regulator", entity:"RBI (built via ReBIT)", sector:"Financial / grievance redressal", status:"Pipeline",
+  funding:"RBI-funded", size:"Complaint Management System, phased",
+  eoi:"Build via ReBIT; phased rollout", ground:"Phase I: conversational AI chatbot to assist complainants; Phase II: advanced complaint processing",
+  officer:"Not publicly disclosed", minister:"RBI (Governor Sanjay Malhotra)",
+  problem:"Customer complaints rose ~30% (FY21–FY23); legacy redressal is slow and English-centric.",
+  solution:"Conversational AI + voice in local languages across complaint lodging to closure.",
+  criteria:"Via ReBIT/RBI procurement", skills:"Conversational AI, multilingual NLU, secure financial data handling",
+  source:"https://vn.tradingview.com/news/moneycontrol:4f636e419094b:0-rbi-embraces-ai-to-tackle-fraud-and-enhance-efficiency", conf:"Reported"},
+
+ {id:"r-dpip", name:"Digital Payments Intelligence Platform (DPIP)", jur:"Regulator", entity:"RBI / Reserve Bank Innovation Hub (RBIH)", sector:"Fraud / payments", status:"Pipeline",
+  funding:"RBI-funded", size:"Prototype with 5–10 banks",
+  eoi:"RBIH tasked with prototype", ground:"Prototype build stage for payment-fraud intelligence",
+  officer:"Not publicly disclosed", minister:"RBI",
+  problem:"Rising digital-payment fraud needs cross-bank intelligence.",
+  solution:"Platform using advanced tech (incl. AI/ML) to detect/prevent digital payment fraud.",
+  criteria:"Banks in consultation; per RBIH terms", skills:"ML fraud detection, data sharing/privacy, real-time pipelines",
+  source:"https://vn.tradingview.com/news/moneycontrol:4f636e419094b:0-rbi-embraces-ai-to-tackle-fraud-and-enhance-efficiency", conf:"Reported"},
+
+ {id:"c-doca", name:"Consumer grievance GenAI assistant (PoC)", jur:"Centre", entity:"Dept of Consumer Affairs + IIT Bombay + NLSIU", sector:"Consumer law / grievance", status:"Concept",
+  funding:"Research grant (Meta-supported Llama PoC)", size:"Proof of concept",
+  eoi:"Research collaboration", ground:"Feasibility PoC: citizen chatbot + decision-assist for consumer law",
+  officer:"Not publicly disclosed", minister:"Dept of Consumer Affairs",
+  problem:"Consumers struggle to draft complaints / understand consumer law; case backlog.",
+  solution:"LLM-based chatbot to guide complaint drafting + decision-assist tool for case-law search & summarisation.",
+  criteria:"Academic-led research", skills:"Legal NLP, RAG, summarisation, human-in-the-loop design",
+  source:"https://about.fb.com/news/2023/11/research-to-transform-indias-consumer-grievance-redressal-system-through-genai/", conf:"Verified"},
+
+ {id:"c-igot", name:"Karmayogi Bharat — iGOT AI skilling", jur:"Centre", entity:"Karmayogi Bharat SPV, Min. of Personnel", sector:"Workforce / training", status:"Deployed",
+  funding:"Govt-funded SPV", size:"Target: upskill ~30 mn officials",
+  eoi:"Platform operational; partners onboarded", ground:"Live iGOT training platform with AI-assisted skilling for govt officials",
+  officer:"Not publicly disclosed", minister:"Min. of Personnel, Public Grievances & Pensions",
+  problem:"30 million central/state officials need continuous, scalable upskilling.",
+  solution:"iGOT online-course platform with AI features for personalised govt-workforce training.",
+  criteria:"Content/tech partners", skills:"LXP/EdTech, recommendation, content AI",
+  source:"https://wadhwanifoundation.org/press/indiaai-mission-can-indias-very-own-ai-push-earn-global-recognition/", conf:"Reported"},
+
+ {id:"c-srijan", name:"Srijan — Centre for Generative AI, IIT Jodhpur", jur:"Centre", entity:"IndiaAI + Meta, hosted at IIT Jodhpur", sector:"Research / capacity", status:"Funded/CfP",
+  funding:"IndiaAI + Meta partnership", size:"National CoE + YuvAi skilling (with AICTE)",
+  eoi:"Capacity-building / research calls", ground:"Established to advance open-source AI; YuvAi skilling launched with AICTE",
+  officer:"Not publicly disclosed", minister:"MeitY / IndiaAI",
+  problem:"Shortage of indigenous GenAI research capacity and skilled talent.",
+  solution:"Generative-AI research centre + nationwide skilling (YuvAi) for students/researchers.",
+  criteria:"Students, researchers via programmes", skills:"GenAI research, open-source model dev, curriculum",
+  source:"https://www.pib.gov.in/PressReleasePage.aspx?PRID=2113095", conf:"Verified"},
+
+ /* ---- States ---- */
+ {id:"s-tn", name:"Tamil Nadu AI Mission (TNAIM)", jur:"State", entity:"Govt of Tamil Nadu + TNeGA", sector:"Governance / socio-economic", status:"Funded/CfP",
+  funding:"₹13.93 cr initial investment", size:"5-year state mission",
+  eoi:"Engages partners via TNeGA", ground:"Launched; building AI governance solutions with Tamil Nadu e-Governance Agency",
+  officer:"Tamil Nadu e-Governance Agency (TNeGA)", minister:"CM M.K. Stalin",
+  problem:"Position TN as an AI hub and deploy AI to improve governance + social/economic outcomes.",
+  solution:"State AI mission with AI-driven governance solutions and ecosystem partnerships.",
+  criteria:"Vendors/partners via TNeGA tenders", skills:"AI/ML, e-gov integration, Tamil NLP",
+  source:"https://indiaai.gov.in/article/india-s-interesting-ai-initiatives-in-2024-ai-landscape-in-india", conf:"Verified"},
+
+ {id:"s-tg", name:"Telangana GenAI for e-governance + AI City", jur:"State", entity:"Govt of Telangana (ITE&C)", sector:"Governance / urban / agri", status:"Pipeline",
+  funding:"State + partnerships (Meta)", size:"State-wide + AI City Hyderabad",
+  eoi:"Advisory council studying policy; AI City planned", ground:"Meta partnership for GenAI in e-governance; Telangana AI Advisory Council set up Nov 2024; AI agriculture policy 2024; AI City planned in Hyderabad",
+  officer:"Not publicly disclosed", minister:"IT Minister D. Sridhar Babu",
+  problem:"Make public services efficient via GenAI; attract AI firms; modernise agriculture.",
+  solution:"GenAI in e-governance (with Meta), AI Advisory Council for policy, AI City to anchor industry, AI agri policy (crop prediction, soil, irrigation).",
+  criteria:"Per state tenders / partnerships", skills:"GenAI apps, e-gov, agri data/ML, urban planning tech",
+  source:"https://indiaai.gov.in/article/republic-day-2025-harnessing-ai-for-a-stronger-smarter-india", conf:"Verified"},
+
+ {id:"s-ka", name:"Karnataka — Shiksha Co-pilot (GenAI for teachers)", jur:"State", entity:"Govt of Karnataka (Education)", sector:"Education", status:"Deployed",
+  funding:"State + partners", size:"Teacher-assist tool; GCC policy targets 3.5 lakh jobs by 2029",
+  eoi:"Partner-built pilot", ground:"Shiksha Co-pilot launched — GenAI assistant for lesson prep & teacher training",
+  officer:"Not publicly disclosed", minister:"Education Minister Madhu Bangarappa",
+  problem:"Teachers need support for lesson preparation and delivery at scale.",
+  solution:"Generative-AI co-pilot aiding teachers with lesson planning and training.",
+  criteria:"Per state/partner programmes", skills:"GenAI edu tools, Kannada NLP, teacher-workflow design",
+  source:"https://indiaai.gov.in/article/india-s-interesting-ai-initiatives-in-2024-ai-landscape-in-india", conf:"Verified"},
+
+ {id:"s-mh", name:"Maharashtra AI Policy 2025 + sector AI", jur:"State", entity:"Govt of Maharashtra (IT Ministry)", sector:"Agri / health / education", status:"Pipeline",
+  funding:"State; Google & NIELIT partnerships", size:"State policy + CoE",
+  eoi:"16-member AI Policy Taskforce formed to draft AI Policy 2025", ground:"Drafting India's first dedicated state AI policy; Google partnership (agri/health/edu); NIELIT CoE in AI/IoT/Robotics/Industry 4.0",
+  officer:"AI Policy Taskforce (16 members)", minister:"IT Minister Ashish Shelar; Dy CM/CM Devendra Fadnavis",
+  problem:"Capitalise on AI growth; build workforce; apply AI to agri/health/education.",
+  solution:"State AI policy + Centre of Excellence + tech-giant partnerships for sectoral AI.",
+  criteria:"Per forthcoming policy/tenders", skills:"AI/ML, IoT/robotics, Marathi NLP, workforce training",
+  source:"https://www.deccanherald.com/india/maharashtra/maharashtra-government-forms-panel-for-artificial-intelligence-policy-3360405", conf:"Verified"},
+
+ {id:"s-gj", name:"Gujarat — 3 AI Centres of Excellence", jur:"State", entity:"Govt of Gujarat (central-supported)", sector:"Health / agri / sustainable cities", status:"Funded/CfP",
+  funding:"~₹990 cr central allocation (shared across CoEs)", size:"3 CoEs + IBM Watsonx cluster (GIFT City)",
+  eoi:"CoEs launched; research/application calls", ground:"3 CoEs (healthcare, agriculture, sustainable cities) launched; AI cluster with IBM Watsonx at GIFT City",
+  officer:"Not publicly disclosed", minister:"Union Education Min. Dharmendra Pradhan (launch)",
+  problem:"Advance applied AI research in health, agriculture and urban sustainability.",
+  solution:"Sector Centres of Excellence + IBM Watsonx-based AI cluster for BFSI/AI literacy.",
+  criteria:"Academia/industry via CoE programmes", skills:"Applied ML, domain AI, platform (Watsonx) skills",
+  source:"https://indiaai.gov.in/article/six-notable-indian-state-governments-ai-initiatives-in-2024", conf:"Verified"},
+
+ {id:"s-ap", name:"Andhra Pradesh — Amaravati AI smart city", jur:"State", entity:"Govt of Andhra Pradesh", sector:"Urban / agri / sustainability", status:"Concept",
+  funding:"State + Google support", size:"City-scale vision",
+  eoi:"Vision/partnership stage", ground:"Amaravati positioned as AI-centric smart city; Google support for agri/health/sustainability AI",
+  officer:"Not publicly disclosed", minister:"Not publicly disclosed",
+  problem:"Embed AI into urban development and key sectors at city scale.",
+  solution:"AI-centric smart-city build-out with partner support.",
+  criteria:"Per future tenders/partnerships", skills:"Urban AI, IoT, agri/health ML",
+  source:"https://indiaai.gov.in/article/republic-day-2025-harnessing-ai-for-a-stronger-smarter-india", conf:"Reported"},
+
+ {id:"s-kl", name:"Kerala — Generative AI adoption", jur:"State", entity:"Govt of Kerala", sector:"Governance / responsible AI", status:"Concept",
+  funding:"Not publicly disclosed", size:"State focus area",
+  eoi:"Policy/early stage", ground:"Stated focus on GenAI with emphasis on responsible adoption",
+  officer:"Not publicly disclosed", minister:"Not publicly disclosed",
+  problem:"Adopt generative AI responsibly across governance.",
+  solution:"Responsible GenAI adoption aligned to global trends (early-stage).",
+  criteria:"TBD", skills:"GenAI apps, governance, AI ethics",
+  source:"https://indiaai.gov.in/article/republic-day-2025-harnessing-ai-for-a-stronger-smarter-india", conf:"Reported"},
+
+ {id:"s-ai4ai", name:"AI4AI — AI for Agriculture Innovation", jur:"State", entity:"WEF C4IR + Union Agri Ministry + Telangana", sector:"Agriculture", status:"Deployed",
+  funding:"Multi-stakeholder", size:"Farmer-facing pilots (Telangana)",
+  eoi:"Consortium programme", ground:"Running AI-for-agriculture initiative with Telangana govt + Union Agriculture Ministry",
+  officer:"Not publicly disclosed", minister:"Union Agriculture Ministry (partner)",
+  problem:"Smallholder farmers need data-driven advisory to raise yields/incomes.",
+  solution:"AI advisory + decision tools for agriculture, piloted via state partnership.",
+  criteria:"Consortium/partner-led", skills:"Agri data science, ML, advisory UX, Indic languages",
+  source:"https://wadhwanifoundation.org/press/indiaai-mission-can-indias-very-own-ai-push-earn-global-recognition/", conf:"Verified"},
+
+ {id:"s-vaachan", name:"Gujarat — Vaachan Samiksha (reading-fluency AI)", jur:"State", entity:"Gujarat Education + Wadhwani AI", sector:"Education", status:"Deployed",
+  funding:"State + Wadhwani AI", size:"33,000 schools, 33 districts; 1.2 lakh+ teachers; 3.6 mn+ assessments",
+  eoi:"Partner-built deployment", ground:"Live — AI tool assessing oral reading fluency to support teachers' remediation",
+  officer:"Not publicly disclosed", minister:"Gujarat Education Dept",
+  problem:"Teachers can't efficiently assess oral reading fluency at scale for remediation.",
+  solution:"AI assessment of oral reading fluency feeding individualised learning pathways.",
+  criteria:"Partner-led", skills:"Speech/ASR, Gujarati NLP, edu analytics",
+  source:"https://wadhwanifoundation.org/press/indiaai-mission-can-indias-very-own-ai-push-earn-global-recognition/", conf:"Verified"},
+];
+
+/* Live procurement / opportunity feeds */
+const FEEDS = [
+ {n:"GeM — Government e-Marketplace", d:"National procurement portal for Centre, States, PSUs, autonomous & local bodies. Search AI/GenAI buy-requirements.", u:"https://gem.gov.in/"},
+ {n:"CPPP — Central Public Procurement Portal", d:"Mandatory tenders, corrigenda & award details for central ministries/depts.", u:"https://eprocure.gov.in/"},
+ {n:"IndiaAI portal", d:"Calls for proposals, missions & initiatives by GoI ministries.", u:"https://indiaai.gov.in/"},
+ {n:"Bhashini", d:"Language-AI APIs, partner onboarding & innovation challenges.", u:"https://bhashini.gov.in/"},
+ {n:"PSA — Principal Scientific Adviser", d:"AI mission strategy, governance guidelines & working papers.", u:"https://www.psa.gov.in/ai-mission-initiatives"},
+ {n:"State e-procurement portals", d:"Each state runs its own (e.g. Maharashtra, TN/TNeGA, Telangana) — check the state IT dept site for AI RFPs.", u:"https://eprocure.gov.in/eprocure/app"},
+];
+
+/* ---------- App ---------- */
+const STATUS_META = {
+  "Deployed":{c:"var(--deployed)"}, "Pipeline":{c:"var(--pipeline)"},
+  "EOI/RFP":{c:"var(--eoi)"}, "Funded/CfP":{c:"var(--funded)"}, "Concept":{c:"var(--concept)"}
+};
+let DATA = loadData();
+let fJur = "All", fStatus = "All", fQ = "";
+
+function loadData(){
+  try{ const s = localStorage.getItem("govgenai_v1"); if(s){ return JSON.parse(s); } }catch(e){}
+  return SEED.slice();
+}
+function persist(){ try{ localStorage.setItem("govgenai_v1", JSON.stringify(DATA)); }catch(e){} }
+
+const jurs = ["All","Centre","State","UT","Regulator","Local body"];
+const stats = ["All","Deployed","EOI/RFP","Pipeline","Funded/CfP","Concept"];
+
+function buildChips(){
+  const jc = document.getElementById("jurChips");
+  jc.innerHTML = jurs.map(j=>`<button class="chip ${j===fJur?'active':''}" onclick="setJur('${j}')">${j}</button>`).join("");
+  const sc = document.getElementById("statusChips");
+  sc.innerHTML = stats.map(s=>`<button class="chip ${s===fStatus?'active':''}" onclick="setStatus('${s.replace(/'/g,"\\'")}')">${s}</button>`).join("");
+}
+function setJur(j){ fJur=j; buildChips(); render(); }
+function setStatus(s){ fStatus=s; buildChips(); render(); }
+
+function esc(t){ return (t==null?"":String(t)).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+function unknown(v){ return !v || /^not publicly|^tbd|^n\/a/i.test(v); }
+
+function field(label, val, conf){
+  const isUnk = unknown(val);
+  const tag = conf ? `<span class="conf ${conf}">${conf}</span>` : "";
+  return `<div class="field"><div class="flabel">${label} ${tag}</div>
+    <div class="fval ${isUnk?'unknown':''}">${esc(val||"Not publicly disclosed")}</div></div>`;
+}
+
+function card(p){
+  const sm = STATUS_META[p.status]||{c:"var(--concept)"};
+  return `<div class="card" id="card-${esc(p.id)}">
+    <div class="card-head" onclick="toggle('${esc(p.id)}')">
+      <div class="rail" style="background:${sm.c}"></div>
+      <div class="card-body-head">
+        <p class="ctitle">${esc(p.name)}</p>
+        <div class="tagrow">
+          <span class="status-dot" style="color:${sm.c}"><span class="dot" style="background:${sm.c}"></span>${esc(p.status)}</span>
+          <span class="pill jur">${esc(p.jur)}</span>
+          <span class="pill sec">${esc(p.sector)}</span>
+        </div>
+        <div class="entity">${esc(p.entity)}</div>
+      </div>
+      <svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+    </div>
+    <div class="detail">
+      ${field("Problem statement", p.problem, p.conf)}
+      ${field("Known / favoured solution", p.solution, p.conf)}
+      <div class="grid2">${field("Funding", p.funding, p.conf)}${field("Project size", p.size, "Indicative")}</div>
+      ${field("EOI / RFP / award status", p.eoi, p.conf)}
+      ${field("Ground status", p.ground, p.conf)}
+      <div class="grid2">${field("Officer in charge", p.officer)}${field("Minister / head", p.minister, p.conf)}</div>
+      ${field("Qualifying criteria", p.criteria, "Indicative")}
+      ${field("Technical skills required", p.skills, "Indicative")}
+      ${p.source?`<a class="src" href="${esc(p.source)}" target="_blank" rel="noopener">↗ Open primary source</a>`:""}
+    </div>
+  </div>`;
+}
+
+function toggle(id){ const el=document.getElementById("card-"+id); if(el) el.classList.toggle("open"); }
+
+function render(){
+  const q = fQ.trim().toLowerCase();
+  const list = DATA.filter(p=>{
+    if(fJur!=="All" && p.jur!==fJur) return false;
+    if(fStatus!=="All" && p.status!==fStatus) return false;
+    if(q){
+      const hay = [p.name,p.entity,p.sector,p.minister,p.officer,p.problem,p.solution,p.jur,p.status].join(" ").toLowerCase();
+      if(!hay.includes(q)) return false;
+    }
+    return true;
+  });
+  document.getElementById("count").textContent = `${list.length} of ${DATA.length} projects`;
+  document.getElementById("list").innerHTML = list.length
+    ? list.map(card).join("")
+    : `<div class="empty">No projects match these filters.<br>Try clearing search or switching jurisdiction.</div>`;
+  // stats
+  document.getElementById("m-total").textContent = DATA.length;
+  document.getElementById("m-dep").textContent = DATA.filter(p=>p.status==="Deployed").length;
+  document.getElementById("m-eoi").textContent = DATA.filter(p=>p.status==="EOI/RFP").length;
+}
+
+function buildFeeds(){
+  document.getElementById("feeds").innerHTML = FEEDS.map(f=>`
+    <div class="feed"><div class="fx"><div class="fn">${esc(f.n)}</div><div class="fd">${esc(f.d)}</div></div>
+    <a href="${esc(f.u)}" target="_blank" rel="noopener">Open ↗</a></div>`).join("");
+}
+
+/* Add / export / import */
+function openAdd(){ document.getElementById("modal").classList.add("show"); }
+function closeAdd(){ document.getElementById("modal").classList.remove("show"); }
+function v(id){ return document.getElementById(id).value.trim(); }
+function saveAdd(){
+  const name=v("f_name"); if(!name){ alert("Project name is required"); return; }
+  DATA.unshift({
+    id:"u-"+Date.now(), name, jur:v("f_jur"), entity:v("f_entity"), sector:v("f_sector")||"—",
+    status:v("f_status"), funding:v("f_funding"), size:v("f_size"), eoi:v("f_eoi"), ground:v("f_ground"),
+    officer:v("f_officer"), minister:v("f_minister"), problem:v("f_problem"), solution:v("f_solution"),
+    criteria:v("f_criteria"), skills:v("f_skills"), source:v("f_source"), conf:"Reported"
+  });
+  persist(); render(); closeAdd();
+  ["f_name","f_entity","f_sector","f_problem","f_solution","f_funding","f_size","f_eoi","f_ground","f_officer","f_minister","f_criteria","f_skills","f_source"].forEach(i=>document.getElementById(i).value="");
+}
+function exportJSON(){
+  const blob=new Blob([JSON.stringify(DATA,null,2)],{type:"application/json"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
+  a.download="india-genai-gov-data.json"; a.click(); URL.revokeObjectURL(a.href);
+}
+function importJSON(e){
+  const file=e.target.files[0]; if(!file) return;
+  const r=new FileReader();
+  r.onload=()=>{ try{ const d=JSON.parse(r.result); if(Array.isArray(d)){ DATA=d; persist(); render(); alert("Imported "+d.length+" records."); } else alert("File must be a JSON array."); }catch(err){ alert("Could not parse JSON."); } };
+  r.readAsText(file); e.target.value="";
+}
+
+document.getElementById("q").addEventListener("input", e=>{ fQ=e.target.value; render(); });
+document.getElementById("modal").addEventListener("click", e=>{ if(e.target.id==="modal") closeAdd(); });
+document.getElementById("foot").textContent = "Snapshot compiled June 2026 · verify every figure against the primary source before commercial use · extend via the live feeds";
+
+buildChips(); buildFeeds(); render();
+</script>
+</body>
+</html>
